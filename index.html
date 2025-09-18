@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistant Resto IA - Dashboard & Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        /* Chat Interface - Sidebar */
+        .chat-sidebar {
+            width: 380px;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+            color: white;
+            padding: 24px 20px;
+            position: relative;
+        }
+
+        .chat-header::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        }
+
+        .chat-header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -0.025em;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafbfc;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.assistant {
+            text-align: left;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            word-wrap: break-word;
+            position: relative;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        }
+
+        .message.assistant .message-bubble {
+            background: white;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .typing-indicator {
+            display: none;
+            text-align: left;
+            margin-bottom: 16px;
+        }
+
+        .typing-dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #64748b;
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .chat-input {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .chat-notice {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 12px;
+            color: #1e40af;
+            line-height: 1.4;
+        }
+
+        .chat-notice strong {
+            font-weight: 600;
+            color: #1d4ed8;
+        }
+
+        .input-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            position: relative;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .message-input {
+            width: 100%;
+            min-height: 44px;
+            max-height: 120px;
+            padding: 12px 56px 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            resize: none;
+            transition: all 0.2s ease;
+            background: #fafbfc;
+        }
+
+        .message-input:focus {
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .message-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .input-actions {
+            position: absolute;
+            right: 12px;
+            bottom: 10px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: #f1f5f9;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .action-btn:hover {
+            background: #3b82f6;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .action-btn.recording {
+            background: #ef4444;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
+
+        .send-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            backdrop-filter: blur(8px);
+        }
+
+        .connection-status.connected {
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        /* Dashboard - Main Content */
+        .dashboard-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: #fafbfc;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 16px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .dashboard-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+            letter-spacing: -0.025em;
+        }
+
+        .dashboard-header p {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 10px 18px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .nav-tab.active, .nav-tab:hover {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #0ea5e9, #3b82f6);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 4px;
+            letter-spacing: -0.025em;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .stat-trend {
+            font-size: 11px;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        .trend-up { color: #e74c3c; }
+        .trend-down { color: #27ae60; }
+        .trend-stable { color: #6c757d; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-weight: 500;
+            font-size: 14px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: #15803d;
+            border-color: #22c55e;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            color: #d97706;
+            border-color: #f59e0b;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #ef4444;
+            animation: pulse 2s infinite;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 2px solid #f1f5f9;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        .planning-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 13px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .planning-table th,
+        .planning-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .planning-table th {
+            background: #f8fafc;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            color: #475569;
+        }
+
+        .planning-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .service-midi {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .service-soir {
+            background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+            color: #be185d;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .employee-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .employee-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: #fafbfc;
+            border-radius: 12px;
+            border-left: 3px solid #3b82f6;
+            transition: all 0.2s ease;
+            border: 1px solid #f1f5f9;
+        }
+
+        .employee-item:hover {
+            transform: translateX(4px);
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .employee-name {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+        }
+
+        .employee-role {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .hours-badge {
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+        }
+
+        .hours-badge.overtime {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            animation: pulse 2s infinite;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+                border-radius: 12px;
+                margin: 12px;
+            }
+            
+            .chat-sidebar {
+                width: 100%;
+                height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            
+            .dashboard-content {
+                min-height: 50vh;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 0;
+                border-radius: 0;
+                height: 100vh;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .dashboard-header {
+                padding: 20px;
+            }
+            
+            .dashboard-content {
+                padding: 16px;
+            }
+        }
+
+        /* Scrollbar personnalisée */
+        .chat-messages::-webkit-scrollbar,
+        .dashboard-content::-webkit-scrollbar,
+        .employee-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track,
+        .dashboard-content::-webkit-scrollbar-track,
+        .employee-list::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb,
+        .dashboard-content::-webkit-scrollbar-thumb,
+        .employee-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover,
+        .dashboard-content::-webkit-scrollbar-thumb:hover,
+        .employee-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .image-preview {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .image-preview img {
+            max-width: 180px;
+            max-height: 180px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .image-preview .remove-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-chat {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            z-index: 1001;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-chat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        @media (max-width: 1200px) {
+            .toggle-chat {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .chat-sidebar.mobile-hidden {
+                display: none;
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Chat Interface -->
+        <div class="chat-sidebar" id="chatSidebar">
+            <div class="chat-header">
+                <h1>🤖 Assistant IA Restaurant</h1>
+                <p>Chat • Vocal • Photo • Planning</p>
+                <div class="connection-status connected" id="connectionStatus">🟢 Connecté</div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-bubble">
+                        👋 <strong>Bonjour !</strong> Je suis votre assistant restaurant IA.
+                        <br><br>
+                        <strong>Je peux vous aider à :</strong>
+                        <br>• 📝 Gérer le planning des employés
+                        <br>• 🎤 Enregistrer les horaires par vocal
+                        <br>• 📸 Traiter vos factures en photo
+                        <br>• 📊 Suivre les heures supplémentaires
+                        <br><br>
+                        <em>Commencez par me poser une question !</em>
+                    </div>
+                    <div class="message-time">Maintenant</div>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="message-bubble">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <div class="chat-notice">
+                    <strong>💡 Comment utiliser l'assistant :</strong><br>
+                    • Dictez vos horaires : <em>"Vanessa 9h-17h demain"</em><br>
+                    • Photographiez vos factures pour les enregistrer<br>
+                    • Demandez le planning : <em>"Qui travaille mardi ?"</em>
+                </div>
+                
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            class="message-input" 
+                            id="messageInput" 
+                            placeholder="Tapez votre message..."
+                            rows="1"
+                        ></textarea>
+                        
+                        <div class="input-actions">
+                            <button class="action-btn" id="photoBtn" title="Photo">📷</button>
+                            <button class="action-btn" id="voiceBtn" title="Vocal">🎤</button>
+                        </div>
+                    </div>
+                    
+                    <button class="send-btn" id="sendBtn" title="Envoyer">➤</button>
+                </div>
+                
+                <div class="image-preview" id="imagePreview" style="display: none;">
+                    <img id="previewImg" src="" alt="Aperçu">
+                    <button class="remove-btn" id="removeImageBtn">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <div class="dashboard-header">
+                <h1>🏪 Restaurant Dashboard</h1>
+                <p>Gestion intelligente • Planning automatisé • Analyse RH temps réel</p>
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showSection('dashboard')">📊 Vue d'ensemble</button>
+                    <button class="nav-tab" onclick="showSection('planning')">📅 Planning</button>
+                    <button class="nav-tab" onclick="showSection('rh')">👥 Ressources Humaines</button>
+                    <button class="refresh-btn" onclick="refreshData()">🔄 Actualiser</button>
+                </div>
+            </div>
+
+            <!-- Stats rapides -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalEmployees">-</div>
+                    <div class="stat-label">Employés actifs</div>
+                    <div class="stat-trend" id="employeesTrend"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="weeklyHours">-</div>
+                    <div class="stat-label">Heures semaine</div>
+                    <div class="stat-trend" id="hoursTrend"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="overtimeHours">-</div>
+                    <div class="stat-label">Heures sup</div>
+                    <div class="stat-trend" id="overtimeTrend"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="overtimeCost">-</div>
+                    <div class="stat-label">Coût HS (€)</div>
+                    <div class="stat-trend" id="costTrend"></div>
+                </div>
+            </div>
+
+            <!-- Section Dashboard -->
+            <div id="dashboard-section" class="section active">
+                <div class="card">
+                    <h2>🚨 Alertes RH</h2>
+                    <div id="alertsContainer">
+                        <div class="loading show">
+                            <div class="spinner"></div>
+                            <p>Chargement des alertes...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📅 Planning Semaine <span id="currentWeek">-</span></h2>
+                    <div id="planningContainer">
+                        <div class="loading show">
+                            <div class="spinner"></div>
+                            <p>Chargement du planning...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>👥 Équipe Aujourd'hui</h2>
+                    <div id="teamContainer">
+                        <div class="loading show">
+                            <div class="spinner"></div>
+                            <p>Chargement de l'équipe...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Planning -->
+            <div id="planning-section" class="section">
+                <div class="card">
+                    <h2>📅 Planning Complet</h2>
+                    <div id="fullPlanningContainer">
+                        <div class="loading show">
+                            <div class="spinner"></div>
+                            <p>Chargement du planning...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section RH -->
+            <div id="rh-section" class="section">
+                <div class="card">
+                    <h2>👥 Analyse RH Détaillée</h2>
+                    <div id="employeeHoursDetails" class="employee-list">
+                        <div class="loading show">
+                            <div class="spinner"></div>
+                            <p>Chargement...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📊 Dashboard Hebdomadaire</h2>
+                    <div id="weeklyDashboard">
+                        <div class="loading show">
+                            <div class="spinner"></div>
+                            <p>Chargement...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bouton toggle chat mobile -->
+    <button class="toggle-chat" id="toggleChat" onclick="toggleChatMobile()">💬</button>
+
+    <input type="file" id="fileInput" class="file-input" accept="image/*">
+
+    <script>
+        // Configuration - MODIFIEZ CES URLs
+        const WEBHOOK_URL = 'https://webhook.n8n.cloud/webhook/23ed6cad-a469-446c-bccd-fe294d0f1839';
+        const AIRTABLE_CONFIG = {
+            baseId: 'app4f09d4qu9atKpR',
+            apiKey: 'VOTRE_CLE_API_AIRTABLE', // Remplacez par votre clé API
+            tables: {
+                employees: 'tblNYFxq1SoepyjAh',
+                planning: 'tblQHhKlNhgVSNdJw',
+                hours: 'tblemYdrNDfJMWytG',
+                dashboard: 'tbljZN2E30DPg1wn1',
+                hebdo: 'tblUseZ4hmM1OQbWp'
+            }
+        };
+
+        // Variables globales Chat
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let selectedImage = null;
+
+        // Variables globales Dashboard
+        let appData = {
+            employees: [],
+            planning: [],
+            dashboard: [],
+            currentWeek: getCurrentWeek(),
+            lastRefresh: null
+        };
+
+        // Éléments DOM
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const photoBtn = document.getElementById('photoBtn');
+        const fileInput = document.getElementById('fileInput');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const removeImageBtn = document.getElementById('removeImageBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadData();
+            console.log('🚀 Assistant Restaurant IA initialisé');
+        });
+
+        // === CONFIGURATION ET UTILITAIRES ===
+        function getCurrentWeek() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const week = Math.ceil(((now - new Date(year, 0, 1)) / 86400000 + 1) / 7);
+            return `${year}-W${String(week).padStart(2, '0')}`;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: '2-digit'
+            });
+        }
+
+        function formatRole(role) {
+            return role?.replace(/\s+$/, '') || 'Non défini';
+        }
+
+        // === GESTION CHAT ===
+        function setupEventListeners() {
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            messageInput.addEventListener('input', adjustTextareaHeight);
+            voiceBtn.addEventListener('click', toggleVoiceRecording);
+            photoBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            removeImageBtn.addEventListener('click', removeImage);
+        }
+
+        function adjustTextareaHeight() {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+        }
+
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            
+            if (!text && !selectedImage) return;
+
+            if (text) {
+                addMessage('user', text);
+            }
+
+            if (selectedImage) {
+                addMessage('user', '', selectedImage);
+            }
+
+            const messageData = {
+                body: {
+                    text: text,
+                    image: selectedImage ? selectedImage.split(',')[1] : null,
+                    audio: null
+                },
+                timestamp: new Date().toISOString(),
+                type: selectedImage ? 'image' : 'text'
+            };
+
+            sendToWebhook(messageData);
+
+            messageInput.value = '';
+            selectedImage = null;
+            imagePreview.style.display = 'none';
+            adjustTextareaHeight();
+        }
+
+        function toggleVoiceRecording() {
+            if (!isRecording) {
+                startVoiceRecording();
+            } else {
+                stopVoiceRecording();
+            }
+        }
+
+        function startVoiceRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const audioBase64 = reader.result.split(',')[1];
+                            sendVoiceMessage(audioBase64);
+                        };
+                        reader.readAsDataURL(audioBlob);
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    voiceBtn.classList.add('recording');
+                })
+                .catch(err => {
+                    console.error('Erreur microphone:', err);
+                    updateConnectionStatus('Erreur microphone', 'disconnected');
+                });
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                voiceBtn.classList.remove('recording');
+            }
+        }
+
+        function sendVoiceMessage(audioBase64) {
+            addMessage('user', '🎤 Message vocal envoyé');
+
+            const messageData = {
+                body: {
+                    text: '',
+                    image: null,
+                    audio: audioBase64
+                },
+                timestamp: new Date().toISOString(),
+                type: 'audio'
+            };
+
+            sendToWebhook(messageData);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    selectedImage = e.target.result;
+                    previewImg.src = selectedImage;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage() {
+            selectedImage = null;
+            imagePreview.style.display = 'none';
+            fileInput.value = '';
+        }
+
+        function sendToWebhook(messageData) {
+            showTypingIndicator();
+            updateConnectionStatus('Traitement...', 'disconnected');
+
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(messageData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideTypingIndicator();
+                updateConnectionStatus('Connecté', 'connected');
+                
+                // Traiter la réponse
+                if (data.success && data.message) {
+                    addMessage('assistant', data.message);
+                } else if (data.response) {
+                    addMessage('assistant', data.response);
+                } else {
+                    addMessage('assistant', 'Action effectuée avec succès !');
+                }
+                
+                // Actualiser le dashboard si nécessaire
+                if (data.action && ['planning', 'hours', 'menu'].includes(data.action)) {
+                    setTimeout(() => loadData(), 1500);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur webhook:', error);
+                hideTypingIndicator();
+                updateConnectionStatus('Erreur connexion', 'disconnected');
+                addMessage('assistant', '⚠️ Je ne peux pas répondre pour le moment. Veuillez réessayer.');
+            });
+        }
+
+        function addMessage(sender, text, image = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            
+            if (image) {
+                const mediaDiv = document.createElement('div');
+                mediaDiv.innerHTML = `<img src="${image}" alt="Image" style="max-width: 150px; border-radius: 8px;">`;
+                bubbleDiv.appendChild(mediaDiv);
+            }
+            
+            if (text) {
+                bubbleDiv.appendChild(document.createTextNode(text));
+            }
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            messageDiv.appendChild(bubbleDiv);
+            messageDiv.appendChild(timeDiv);
+            chatMessages.appendChild(messageDiv);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'block';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function updateConnectionStatus(text, status) {
+            connectionStatus.textContent = status === 'connected' ? '🟢 ' + text : '🔴 ' + text;
+            connectionStatus.className = `connection-status ${status}`;
+        }
+
+        // === DONNÉES DASHBOARD ===
+        async function loadData() {
+            try {
+                if (AIRTABLE_CONFIG.apiKey !== 'VOTRE_CLE_API_AIRTABLE') {
+                    // Appels API réels
+                    await loadAirtableData();
+                } else {
+                    // Données de simulation
+                    const data = generateSimulationData();
+                    appData = { ...appData, ...data, lastRefresh: new Date() };
+                    updateDashboard();
+                }
+            } catch (error) {
+                console.error('Erreur chargement:', error);
+                // Fallback sur simulation
+                const data = generateSimulationData();
+                appData = { ...appData, ...data, lastRefresh: new Date() };
+                updateDashboard();
+            }
+        }
+
+        async function loadAirtableData() {
+            const headers = { 'Authorization': `Bearer ${AIRTABLE_CONFIG.apiKey}` };
+            
+            const [employeesRes, dashboardRes] = await Promise.all([
+                fetch(`https://api.airtable.com/v0/${AIRTABLE_CONFIG.baseId}/${AIRTABLE_CONFIG.tables.employees}`, { headers }),
+                fetch(`https://api.airtable.com/v0/${AIRTABLE_CONFIG.baseId}/${AIRTABLE_CONFIG.tables.dashboard}`, { headers })
+            ]);
+            
+            const employeesData = await employeesRes.json();
+            const dashboardData = await dashboardRes.json();
+            
+            // Traitement des données réelles
+            const employees = employeesData.records.map(record => ({
+                id: record.id,
+                nom: record.fields.Nom || 'Employé',
+                role: record.fields.Rôle || 'Non défini',
+                heuresContrat: record.fields['Heures contrat'] || 35
+            }));
+            
+            const dashboard = {
+                totalEmployes: employees.length,
+                totalHeures: dashboardData.records.reduce((sum, r) => sum + (r.fields['Total heures équipe (h)'] || 0), 0),
+                totalHeuresSupp: dashboardData.records.reduce((sum, r) => sum + (r.fields['Heures sup totales (h)'] || 0), 0),
+                coutHS: dashboardData.records.reduce((sum, r) => sum + (r.fields['Coût HS'] || 0), 0)
+            };
+            
+            appData = { ...appData, employees, dashboard, lastRefresh: new Date() };
+            updateDashboard();
+        }
+
+        function generateSimulationData() {
+            return {
+                employees: [
+                    { id: '1', nom: 'Vanessa', role: 'Serveur', heuresContrat: 35, heuresSemaine: 39, heuresSupp: 4 },
+                    { id: '2', nom: 'Sarah', role: 'Cuisine', heuresContrat: 35, heuresSemaine: 42, heuresSupp: 7 },
+                    { id: '3', nom: 'Oscar', role: 'Plongeur', heuresContrat: 35, heuresSemaine: 38, heuresSupp: 3 },
+                    { id: '4', nom: 'Louis', role: 'Cuisine', heuresContrat: 35, heuresSemaine: 35, heuresSupp: 0 },
+                    { id: '5', nom: 'Alexis', role: 'Serveur', heuresContrat: 35, heuresSemaine: 41, heuresSupp: 6 }
+                ],
+                planning: [
+                    { date: '2025-01-20', service: 'Midi', employes: ['Sarah', 'Vanessa'], complet: true },
+                    { date: '2025-01-20', service: 'Soir', employes: ['Sarah', 'Vanessa', 'Oscar'], complet: true },
+                    { date: '2025-01-21', service: 'Midi', employes: ['Louis', 'Alexis'], complet: true },
+                    { date: '2025-01-21', service: 'Soir', employes: ['Louis', 'Alexis', 'Oscar'], complet: true }
+                ],
+                dashboard: {
+                    totalEmployes: 5,
+                    totalHeures: 195,
+                    totalHeuresSupp: 20,
+                    coutHS: 375
+                }
+            };
+        }
+
+        // === MISE À JOUR INTERFACE ===
+        function updateDashboard() {
+            document.getElementById('totalEmployees').textContent = appData.dashboard.totalEmployes || appData.employees.length;
+            document.getElementById('weeklyHours').textContent = (appData.dashboard.totalHeures || 195) + 'h';
+            document.getElementById('overtimeHours').textContent = (appData.dashboard.totalHeuresSupp || 20) + 'h';
+            document.getElementById('overtimeCost').textContent = Math.round(appData.dashboard.coutHS || 375) + '€';
+            document.getElementById('currentWeek').textContent = appData.currentWeek;
+
+            updateTrends();
+            updateAlerts();
+            updateTeam();
+            updatePlanning();
+            
+            document.querySelectorAll('.loading').forEach(loader => {
+                loader.classList.remove('show');
+            });
+        }
+
+        function updateTrends() {
+            const overtimeHours = appData.dashboard.totalHeuresSupp || 20;
+            
+            document.getElementById('employeesTrend').innerHTML = '<span class="trend-stable">→ Stable</span>';
+            document.getElementById('hoursTrend').innerHTML = '<span class="trend-up">↗ +8%</span>';
+            document.getElementById('overtimeTrend').innerHTML = overtimeHours > 15 ? 
+                '<span class="trend-up">⚠️ Élevé</span>' : 
+                '<span class="trend-stable">→ Normal</span>';
+            document.getElementById('costTrend').innerHTML = '<span class="trend-up">↗ +12%</span>';
+        }
+
+        function updateAlerts() {
+            const container = document.getElementById('alertsContainer');
+            const totalOvertime = appData.dashboard.totalHeuresSupp || 20;
+            const cost = appData.dashboard.coutHS || 375;
+            
+            let alertHTML = '';
+            
+            if (totalOvertime > 25) {
+                alertHTML = `
+                    <div class="alert alert-danger">
+                        <h3>🚨 SITUATION CRITIQUE</h3>
+                        <p><strong>${totalOvertime}h</strong> d'heures supplémentaires cette semaine</p>
+                        <p>Coût: <strong>${Math.round(cost)}€</strong> • Action immédiate requise</p>
+                    </div>
+                `;
+            } else if (totalOvertime > 15) {
+                alertHTML = `
+                    <div class="alert alert-warning">
+                        <h3>⚠️ VIGILANCE REQUISE</h3>
+                        <p><strong>${totalOvertime}h</strong> d'heures supplémentaires détectées</p>
+                        <p>Coût: <strong>${Math.round(cost)}€</strong> • Surveillance recommandée</p>
+                    </div>
+                `;
+            } else {
+                alertHTML = `
+                    <div class="alert alert-success">
+                        <h3>✅ SITUATION NORMALE</h3>
+                        <p>Heures supplémentaires sous contrôle</p>
+                        <p><strong>${totalOvertime}h</strong> cette semaine • Coût: <strong>${Math.round(cost)}€</strong></p>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = alertHTML;
+        }
+
+        function updateTeam() {
+            const container = document.getElementById('teamContainer');
+            
+            let teamHTML = '<div class="employee-list">';
+            
+            appData.employees.forEach(emp => {
+                const heuresSupp = emp.heuresSupp || 0;
+                const heuresSemaine = emp.heuresSemaine || emp.heuresContrat;
+                const overtimeClass = heuresSupp > 5 ? 'overtime' : '';
+                
+                teamHTML += `
+                    <div class="employee-item">
+                        <div>
+                            <div class="employee-name">${emp.nom}</div>
+                            <div class="employee-role">${formatRole(emp.role)}</div>
+                        </div>
+                        <div class="hours-badge ${overtimeClass}">
+                            ${heuresSemaine}h (+${heuresSupp}h)
+                        </div>
+                    </div>
+                `;
+            });
+            
+            teamHTML += '</div>';
+            container.innerHTML = teamHTML;
+        }
+
+        function updatePlanning() {
+            const container = document.getElementById('planningContainer');
+            
+            if (!appData.planning || appData.planning.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Aucun planning disponible</p>';
+                return;
+            }
+            
+            let tableHTML = `
+                <table class="planning-table">
+                    <thead>
+                        <tr>
+                            <th>📅 Date</th>
+                            <th>⏰ Service</th>
+                            <th>👥 Équipe</th>
+                            <th>✅ Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            appData.planning.forEach(entry => {
+                const serviceClass = entry.service === 'Midi' ? 'service-midi' : 'service-soir';
+                const statusText = entry.complet ? '✅ Complet' : '⚠️ Incomplet';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${formatDate(entry.date)}</td>
+                        <td><span class="${serviceClass}">${entry.service}</span></td>
+                        <td>${entry.employes.join(', ')}</td>
+                        <td>${statusText}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        // === NAVIGATION ===
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            document.getElementById(sectionName + '-section').classList.add('active');
+            
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            if (sectionName === 'rh') {
+                loadRHSection();
+            } else if (sectionName === 'planning') {
+                loadPlanningSection();
+            }
+        }
+
+        function loadRHSection() {
+            const container = document.getElementById('employeeHoursDetails');
+            const dashboardContainer = document.getElementById('weeklyDashboard');
+            
+            let rhHTML = '';
+            appData.employees.forEach(emp => {
+                const heuresSupp = emp.heuresSupp || 0;
+                const heuresSemaine = emp.heuresSemaine || emp.heuresContrat;
+                const efficiency = Math.round((heuresSemaine / emp.heuresContrat) * 100);
+                const overtimeCost = heuresSupp * 18.75;
+                
+                rhHTML += `
+                    <div class="employee-item">
+                        <div>
+                            <div class="employee-name">${emp.nom}</div>
+                            <div class="employee-role">${formatRole(emp.role)} • ${emp.heuresContrat}h/sem</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                                Efficacité: ${efficiency}% • Coût HS: ${Math.round(overtimeCost)}€
+                            </div>
+                        </div>
+                        <div>
+                            <div class="hours-badge ${heuresSupp > 5 ? 'overtime' : ''}">
+                                ${heuresSemaine}h
+                            </div>
+                            ${heuresSupp > 0 ? `<div style="font-size: 10px; text-align: center; margin-top: 2px; color: #ef4444;">+${heuresSupp}h</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = rhHTML;
+            
+            const totalOvertime = appData.dashboard.totalHeuresSupp || 20;
+            dashboardContainer.innerHTML = `
+                <div class="alert alert-${totalOvertime > 25 ? 'danger' : totalOvertime > 15 ? 'warning' : 'success'}">
+                    <h4>📊 Résumé Semaine ${appData.currentWeek}</h4>
+                    <div style="margin-top: 10px; font-size: 13px;">
+                        <div>• Total équipe: <strong>${appData.dashboard.totalHeures || 195}h</strong></div>
+                        <div>• Heures sup: <strong>${totalOvertime}h</strong></div>
+                        <div>• Coût HS: <strong>${Math.round(appData.dashboard.coutHS || 375)}€</strong></div>
+                        <div>• Statut: <strong>${totalOvertime > 25 ? '🔴 Critique' : totalOvertime > 15 ? '🟡 Vigilance' : '🟢 Normal'}</strong></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadPlanningSection() {
+            const container = document.getElementById('fullPlanningContainer');
+            updatePlanning();
+            // Copier le contenu du planning principal
+            container.innerHTML = document.getElementById('planningContainer').innerHTML;
+        }
+
+        function refreshData() {
+            document.querySelectorAll('.loading').forEach(loader => {
+                loader.classList.add('show');
+            });
+            
+            setTimeout(() => {
+                loadData();
+                console.log('🔄 Données actualisées');
+            }, 1000);
+        }
+
+        function toggleChatMobile() {
+            const chatSidebar = document.getElementById('chatSidebar');
+            chatSidebar.classList.toggle('mobile-hidden');
+        }
+
+        // Actualisation automatique toutes les 5 minutes
+        setInterval(refreshData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
